@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soepversionizer"
+version = "0.1.0"
+dependencies = [
+  "pandas",
+]
+requires-python = ">=3.6"
+authors = [
+  {name = "Christoph Halbmeier", email = "chalbmeier@diw.de"},
+]
+maintainers = [
+  {name = "Christoph Halbmeier", email = "chalbmeier@diw.de"}
+]
+
+description = "A package to facilitate the versioning of variable names in SOEP metadata."
+readme = "README.md"
