@@ -4,7 +4,7 @@ from soepversionizer import Database
 from soepversionizer.algorithms import get_questions_with_same_item_name
 from soepversionizer.const import FONTS, HEIGHT, PADDINGS, WIDTH
 from soepversionizer.data import Data
-from soepversionizer.questionnaireview import QuestionnaireView, ScrollFrame
+from soepversionizer.questionnaireview import QuestionnaireView
 from soepversionizer.questionview import QuestionView
 from soepversionizer.nav_elements import FileMenu, QuestionButtons
 from ctypes import windll
@@ -75,11 +75,11 @@ class Versionizer():
         buttons_right = QuestionButtons(self.root, row=1, column=2)
         
         ### Viewers to show selected questions
-        self.scroll_frame_left = ScrollFrame(root=self.root, row=2, column=0)
-        self.scroll_frame_right = ScrollFrame(root=self.root, row=2, column=2)
+        #self.scroll_frame_left = ScrollFrame(root=self.root, row=2, column=0)
+        #self.scroll_frame_right = ScrollFrame(root=self.root, row=2, column=2)
 
-        self.questionnaire_view1 = QuestionnaireView(self.scroll_frame_left.frame)
-        self.questionnaire_view2 = QuestionnaireView(self.scroll_frame_right.frame)
+        self.questionnaire_view1 = QuestionnaireView(root=self.root, row=2, column=0)
+        self.questionnaire_view2 = QuestionnaireView(root=self.root, row=2, column=2)
         #self.questionnaire_view3 = QuestionnaireView(self.scrollable_frame, col=0, row=3, title="Associated questions" )
 
         ########################################

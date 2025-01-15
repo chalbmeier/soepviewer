@@ -2,15 +2,22 @@ import tkinter as tk
 from tkinter import ttk
 from soepversionizer.const import COLUMNS, PADDINGS, FONTS
 from soepversionizer.questionview import QuestionView
+from soepversionizer.input_handlers import ScrollEventHandler
 
 class ScrollFrame():
+
+    """A scrollable canvas widget that contains a frame with two columns"""
 
     def __init__(self, root, row, column):
 
         self.root = root
 
+        ##############################
+        # Layout 
+        ###############################
+
         # Scrollable canvas + frame for questions 
-        self.canvas = tk.Canvas(self.root, bg="pink")
+        self.canvas = tk.Canvas(self.root, bg="pink", height=600)
         self.canvas.grid(row=row, column=column, sticky="nsew", **PADDINGS['normal'])
 
         v_scrollbar = ttk.Scrollbar(self.root, orient=tk.VERTICAL, command=self.canvas.yview)
@@ -25,45 +32,41 @@ class ScrollFrame():
         self.canvas.bind("<Configure>", self.adjust_frame_width)
         self.frame.bind("<Configure>", self.update_scroll_region)
 
-        print(f"Width of scrollable frame at start: {self.frame.winfo_width()}")
+        #############################
+        # Handling of user input
+        #############################
 
-   
+        # Bind mouse wheel input to widgets of canvas
+        self.scroll_handler = ScrollEventHandler(self.canvas)
+        for widget in [self.canvas, v_scrollbar] +  self.canvas.winfo_children():
+            widget.bind("<MouseWheel>", self.scroll_handler.on_mouse_wheel)  # Windows/Linux
+            widget.bind("<Button-4>", self.scroll_handler.on_mouse_wheel)  # macOS scroll up
+            widget.bind("<Button-5>", self.scroll_handler.on_mouse_wheel)  # macOS scroll down  
+
     def adjust_frame_width(self, event):
         width = self.canvas.winfo_width()
         self.canvas.itemconfig("frame", width=width)
         
         # Adjust width of columns inside frame
-        self.frame.columnconfigure(0, minsize=int(width*0.3))
-        self.frame.columnconfigure(1, minsize=int(width*0.7))
+        self.frame.columnconfigure(0, minsize=int(width*0.2))
+        self.frame.columnconfigure(1, minsize=int(width*0.8))
 
     def update_scroll_region(self, event):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-class QuestionnaireView:
 
-    def __init__(self, root, col=None, row=None, data=None, aux_data=None, title="", study=None, questionnaire=None):
+class QuestionnaireView(ScrollFrame):
+
+    """A modified ScrollFrame that displays a question with its several items"""
+
+    def __init__(self, root, column=None, row=None, data=None, aux_data=None, title="", study=None, questionnaire=None):
         
-        self.root = root
-        #self.frame = tk.LabelFrame(root, text=title, **PADDINGS['normal'], font=FONTS['main'], bg='red') 
-        self.frame = self.root
-        #self.frame = tk.Label(root, text=title, **PADDINGS['normal'], font=FONTS['main'])
-        text1 = "1"
-        label = tk.Label(self.root, text=text1, **PADDINGS['normal'], font=FONTS['main'], wraplength=2000) 
-        label.grid(row=0, column=0)
-        text2 = "1"
-        label = tk.Label(self.root, text=text2, **PADDINGS['normal'], font=FONTS['main'], wraplength=2000) 
-        label.grid(row=0, column=1)
+        super().__init__(root, column=column, row=row)
+        
         self.data = data
         self.aux_data = aux_data
         self.study = study
         self.questionnaire = questionnaire
-
-        # Create columns within frame
-
-        #self.frame.grid(row=row, column=col, sticky="nsew", **PADDINGS['normal'])
-        #self.frame.columnconfigure(0, weight=0)
-        #self.frame.columnconfigure(1, weight=1)
-            
 
         self.quest_views = []
 
@@ -77,7 +80,20 @@ class QuestionnaireView:
         ]
 
     def updata_data(self, event=None, input=None, output=None):
+        """Update if new data, e.g. questions.csv, is loaded
+
+        Parameters
+        ----------
+        event : _type_, optional
+            _description_, by default None
+        input : Data object, optional
+            The new data object
+        output : _type_, optional
+            _description_, by default None
+        """
+        
         self.data = input.data
+        self.answers = input.answers
         self.questions = input.questions
 
     def update_meta(self, study, questionnaire):
@@ -85,17 +101,25 @@ class QuestionnaireView:
         self.questionnaire = questionnaire
 
     def update(self, event=None, input=None, output=None):
-        
-        # Get new data
-        newdata = [self.data.loc[self.data['question']==input]]
-
+    
         # Remove previous view
         for widget in self.frame.winfo_children():
             widget.destroy()
 
-        self.quest_views = [QuestionView(self)]
+        # Get new question
+        newdata = [self.data.loc[self.data['question']==input]]
 
-        for q, d in zip(self.quest_views, newdata):
+
+        # Creates new QuestionView if data are updated by user input
+        self.question_views = [QuestionView(self)] 
+
+        for q, d in zip(self.question_views, newdata):
             q.update(input = d)
 
-        print(f"Width of questionnaire view root frame: {self.frame.winfo_width()}")
+        # Bind mouse wheel input to widgets in QuestionView
+        for widget in self.frame.winfo_children():
+            widget.bind("<MouseWheel>", self.scroll_handler.on_mouse_wheel)  # Windows/Linux
+            widget.bind("<Button-4>", self.scroll_handler.on_mouse_wheel)  # macOS scroll up
+            widget.bind("<Button-5>", self.scroll_handler.on_mouse_wheel)  # macOS scroll down   
+
+        #print(f"Width of questionnaire view root frame: {self.frame.winfo_width()}")

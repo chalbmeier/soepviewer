@@ -11,8 +11,8 @@ COLUMNS = {
 }
 
 
-WIDTH = 1500
-HEIGHT = 500
+WIDTH = 1900
+HEIGHT = 1000
 FONTS = {'main': ('Arial', 12)}
 PADDINGS = {
     'normal': {'padx': 5, 'pady': 5},

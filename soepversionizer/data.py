@@ -1,9 +1,21 @@
+from pathlib import Path
+from os.path import join
 import soepdoku as soep
 from soepversionizer.const import COLUMNS
 
 class Data():
 
-    def __init__(self, viewer=None, buttons=None, data=None, aux_data=None, study=None, questionnaire=None, associated_viewer=None):
+    def __init__(
+            self, 
+            viewer=None, 
+            buttons=None, 
+            data=None, 
+            aux_data=None, 
+            study=None, 
+            questionnaire=None, 
+            associated_viewer=None
+        ):
+
         self.viewer = viewer
         self.buttons = buttons
         self.data = data
@@ -20,6 +32,13 @@ class Data():
         # Load new data
         file = input.get()
         self.data = soep.read_csv(file)
+
+        try:
+            answers_file = join(Path(file).parents[0], 'answers.csv')
+            self.answers = soep.read_csv(answers_file)
+        except:
+            self.answers = None
+
         self.questions = self.data['question'].unique().tolist()
         self.study = self.data.loc[0, 'study']
         self.questionnaire = self.data.loc[0, 'questionnaire']
