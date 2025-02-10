@@ -4,9 +4,9 @@ from pathlib import Path
 from platformdirs import user_config_dir
 import tkinter as tk
 import tomllib
-from soepviewer.soepviewer import Database
 from .algorithms import ItemNameSimilarity, LevenshteinSimilarity
 from .data import Data
+from .database import Database
 from .layout import Layout
 from .questionnaireview import QuestionnaireView
 from .nav_elements import Box, FileMenu, Popup, QuestionButtons
