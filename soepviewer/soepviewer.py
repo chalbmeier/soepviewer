@@ -13,7 +13,7 @@ from .nav_elements import Box, FileMenu, Popup, QuestionButtons
 from .similarity_widgets import SimilarityWidget
 from .utils import ListVar
 
-class Versionizer():
+class Viewer():
 
     def __init__(
             self, 
@@ -414,7 +414,7 @@ class Versionizer():
 
 def start():
     """Starts a new instance of the app. For command line."""
-    Versionizer()
+    Viewer()
 
 
  
