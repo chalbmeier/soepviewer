@@ -1,7 +1,7 @@
 from .database import Database
-from .soepversionizer import Versionizer
+from .soepviewer import Viewer
 
 __all__ = [
     "Database",
-    "Versionizer",
+    "Viewer",
 ]

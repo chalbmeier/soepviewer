@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 import re
 import pandas as pd
+import numpy as np
 from pandas import DataFrame
 import soepdoku as soep
+from soepdoku.const import DATA_SCALES
 from soepdoku.utils import listify
-from soepdoku.merge import merge_quest_log_gen
+from soepdoku.merge import concat_str_cols, merge_quest_log_gen
 
 class Database():
 
@@ -18,27 +20,50 @@ class Database():
         self.questions = None
         self.logical_variables = None
         self.generations = None
+        self.answers = None
+        self.questions_var = None
+        self.file_to_questionnaire = None
+        self.questionnaire_to_file = None
 
 
-    def build(self):
+    def build(self, create_context=True):
         
         self.questions = self.stack_questions()
+
+        if create_context:
+            self.questions = self.create_context(self.questions, columns=['text_de']) # 'instruction_de'
 
         self.logical_variables = self.stack_logical_variables()
 
         self.generations = self.stack_generations()
 
+        self.answers = self.stack_answers()
+
         return None
 
 
     def merge_quest_log_gen(self):
-            
+        
+   
+        if self.logical_variables is None:
+            self.logical_variables = DataFrame(
+                columns=['study', 'dataset', 'variable', 'questionnaire', 'question', 'item']
+                )
+        
+        if self.generations is None:
+           self.generations = DataFrame(
+               columns=[
+                    'input_study', 'input_version', 'input_dataset', 'input_variable',
+                    'output_variable', 'output_dataset', 'output_version', 'output_study'
+                ]
+           )
+
         item_to_variables = merge_quest_log_gen(
             self.questions, 
             self.logical_variables, 
             self.generations, 
-            show_dataset=False, 
-            show_version=False
+            show_dataset=True, 
+            show_version=True
         )
 
         questions = pd.merge(
@@ -46,15 +71,27 @@ class Database():
             item_to_variables, 
             how='left',
             on=['study', 'questionnaire', 'question', 'item']
-        )
+        )   
 
-        quest_expl = questions[['item', 'output']].copy()
-        quest_expl['output'] = quest_expl['output'].str.split(',')
-        quest_expl = quest_expl.explode('output')
-        quest_expl['item'] = quest_expl['item'].apply(lambda item: remove_version_suffix(item))
-        quest_expl['output'] = quest_expl['output'].apply(lambda item: remove_version_suffix(item))
+        # One row per variable
+        quest_expl = questions[['study', 'questionnaire', 'question', 'item', 'scale', 'output']].copy()
+        #quest_expl['output'] = quest_expl['output'].replace(to_replace='v0', value='') # if output='v0'
+        quest_expl['output'] = quest_expl['output'].apply(lambda x: x.split(','))
+        quest_expl = quest_expl.explode('output').reset_index()
 
-        return (questions, quest_expl)
+        # Transform strings in 'output' (ex. v39/lee2estab/elb0001) to separate columns
+        new_cols = ['version', 'dataset', 'variable']
+        #quest_expl[new_cols] = quest_expl['output'].apply(lambda x: x.split('/')).apply(pd.Series)
+        quest_expl[new_cols] = quest_expl['output'].apply(lambda x: split_string(x)).apply(pd.Series)
+        quest_expl[new_cols] = quest_expl[new_cols].fillna('')
+
+        # Remove version suffices, ex.: elb0001_v1 -> elb0001
+        quest_expl['item_nov'] = quest_expl['item'].apply(lambda item: remove_version_suffix(item))
+        quest_expl['variable_nov'] = quest_expl['variable'].apply(
+            lambda item: remove_version_suffix(item))
+        
+        quest_expl = quest_expl.sort_values(by=['dataset', 'version', 'variable'])
+        self.questions_var = quest_expl
 
 
     def stack_questions(self):
@@ -62,6 +99,23 @@ class Database():
         relevant_cols = ['study', 'questionnaire', 'question', 'item', 'text_de', 'instruction_de', 'scale', 'answer_list']
 
         dfs = [soep.read_csv(f) for f in self.paths]
+
+        self.file_to_questionnaire = {}
+        self.questionnaire_to_file = {}
+
+        for df, f in zip(dfs, self.paths):
+            _study = df.loc[0, 'study']
+            _questionnaire = df.loc[0, 'questionnaire']
+            self.file_to_questionnaire[f] = {
+                'study': _study, 
+                'questionnaire': _questionnaire,
+                'questions':  df['question'].unique().tolist(),
+            }
+
+            self.questionnaire_to_file[(_study, _questionnaire)] = {
+                'file': f,
+            }
+    
         questions = self.stack_dfs(dfs, relevant_columns=relevant_cols)
 
         return questions
@@ -114,14 +168,15 @@ class Database():
         # Get paths to all relevant generations.csv, takes time
         files = []
         for doku_repo in self.doku_repos:
-            files += get_paths(doku_repo, filename = 'generations.csv', include_version_dir=[versions], ignore_top_level=True)
-        
+            files += get_paths(doku_repo, filename = 'generations.csv', include_version_dir=versions, ignore_top_level=True)
+       
         # Read and append
         dfs = [soep.read_csv(f) for f in files]
         generations = self.stack_dfs(dfs, relevant_columns=relevant_cols)
 
         return generations
     
+
     def stack_dfs(self, dfs, relevant_columns=None):
 
         if relevant_columns is None:
@@ -130,32 +185,96 @@ class Database():
         dfs = [df for df in dfs if all([col in df.columns for col in relevant_columns])]
         dfs = [df[relevant_columns] for df in dfs]
         
-        stacked = dfs[0]
+        n = len(dfs)
+        if n==0:
+            return None
+        elif n==1:
+            return dfs[0]
+        else:
+            stacked = dfs[0]
 
-        for df in dfs[1:]:
-            stacked = pd.concat([stacked, df], ignore_index=True)
+            for df in dfs[1:]:
+                stacked = pd.concat([stacked, df], ignore_index=True)
 
         return stacked
-        
 
-    def get_questions_with_same_name(self):
 
-        # Get iassociated variable names of self.questionnaire
-        names = self.get_variable_names(self)
+    def stack_answers(self):
 
-        return None
+        if self.file_to_questionnaire is None:
+            return
+
+        dfs = []
+
+        for f in self.paths:
+
+            study = self.file_to_questionnaire[f]['study']
+            questionnaire = self.file_to_questionnaire[f]['questionnaire']
+
+            try:
+                answers_file = os.path.join(Path(f).parents[0], 'answers.csv')
+                dfs.append(soep.read_csv(answers_file))
+            except:
+                pass
+        relevant_cols = ['study', 'questionnaire', 'answer_list', 'value', 'label_de', 'label']
+        answers = self.stack_dfs(dfs, relevant_columns=relevant_cols)
+        return answers
     
-    def get_variable_names(self):
 
-        # Read logical_variables.csv
-        parent = Path(self.questionnaire.path).parents[0]
-        logicals_file = Path.joinpath(parent, 'logical_variables.csv') 
-        try:
-            logical_variables = soep.read_csv(logicals_file)
-        except:
-            logical_variables = None
-        #print(logical_variables)
+    def create_context(self, df, columns=None):
+
+        """Creates an extented string that includes an item's text plus its question context 
+
+        Parameters
+        ----------
+        data : DataFrame
+            A Soep-style questionnaire as DataFrame
+        columns : list of strings
+            Columns that contain contextual information, ex.: ['text_de', 'instruction_de']
+
+        Returns
+        -------
+        DataFrame
+            Returns data with the additional column 'context'
+
+        """
+
+        # Select items that provide context
+        context_items = ~df['scale'].isin(DATA_SCALES)
+        df.loc[context_items, 'context'] = df.apply(
+                lambda x: concat_str_cols(x, columns, sep=' '), axis=1
+            )
+        
+        df.loc[~context_items, 'context'] = ""
+
+        # Cast context to corresponding items
+        question_id = ['study', 'questionnaire', 'question']
+        context_by_question = df.groupby(question_id, as_index=False)['context'].apply(
+            lambda x: _single_space_join(x)
+            )
+        df = df.merge(context_by_question, how='left', left_on=question_id, right_on=question_id)
+        df = df.rename(columns={'context_y': 'context'}).drop(columns=['context_x'])
+
+        return df
+    
+
+def _single_space_join(x):
+    result = ""
+    for row in x:
+        if isinstance(row, float):
+            if ~np.isnan(row):
+                result += ' ' + str(row)
+        else:
+            if row != "":
+                result += ' ' + row
+    return result.strip()
             
+
+def split_string(string):
+    result = string.split('/')
+    if len(result)!=3:
+        result = [np.nan, np.nan, np.nan]
+    return result
 
 def is_version_string(string):    
     if re.search('v[0-9].', string) is not None:
@@ -171,7 +290,14 @@ def remove_version_suffix(string):
     return string
 
 
-def search_files(path, filename="",  include_version_dir=None, skip_dir=None, key_value=None, ignore_top_level=False):
+def search_files(
+        path,
+        filename="", 
+        include_version_dir=None,
+        skip_dir=None,
+        key_value=None,
+        ignore_top_level=False
+        ):
     """Walks through the directories in path and searches for CSVs.
 
     Parameters
@@ -273,7 +399,14 @@ def search_csv(path, key_value):
     if all(found):
         return path
 
-def get_paths(path, filename='logical_variables.csv', col_value=None, include_version_dir=None, skip_dir=None, ignore_top_level=False):
+def get_paths(
+        path, 
+        filename='logical_variables.csv', 
+        col_value=None, 
+        include_version_dir=None, 
+        skip_dir=None, 
+        ignore_top_level=False
+        ):
 
     """Gets all absolute paths to CSVs in SOEP Dokumentation/questionnaires and 
     Dokumentation/datasets. 
