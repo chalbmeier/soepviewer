@@ -4,8 +4,8 @@ A small desktop app to make working with [SOEP](https://www.diw.de/en/diw_01.c.6
 
 ## Requirements
 
-- Windows 10/11 (64-bit)
-- Python 3.11+ (CPython)
+- Windows 10/11
+- Python 3.11+
 - SOEP documentation metadata
 
 ## Description
