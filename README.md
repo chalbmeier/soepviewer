@@ -1,17 +1,52 @@
-# Description
-soepviewer is an app to facilitate the work with SOEP metadata.
+# SOEPViewer
 
-# Installation
+A small desktop app to make working with [SOEP](https://www.diw.de/en/diw_01.c.615551.en/research_infrastructure__socio-economic_panel__soep.html) metadata easier.  
 
-```
+## Requirements
+
+- Windows 10/11 (64-bit)
+- Python 3.11+ (CPython)
+- SOEP documentation metadata
+
+## Description
+
+The [SOEP metadata](https://git.soep.de/kwenzig/publicecoredoku) consist of several hundred CSV files that contain information about survey questions and answers and their links to datasets and variable names. These files are often viewed or edited individually in spreadsheet software, which makes it hard to see how they relate. For example, to trace the connection between a specific survey question and its variables, SOEP survey designers typically need to open two to four CSV files—often twice as many when comparing questions across survey waves.
+
+**SOEPViewer** is a prototype application that makes these relationships easier to see. On startup, it automatically builds links between questions, answers, datasets, and variables and presents them in a user-friendly interface. For each question, it also lists related questions to support comparisons across survey waves and the versioning of variable names. In this way, SOEPViewer simplifies working with SOEP metadata.
+
+<video controls width="400" src="https://github.com/user-attachments/assets/f0be631a-50a8-49ff-bfa5-dbb91a2b706b">
+</video>
+
+## Installation
+
+```console
 pip install "soepviewer@git+https://github.com/chalbmeier/soepviewer.git"
 ```
 
-# Usage
-Run the app by entering the following command in a terminal with the correct Python environment set:
-
+Get the SOEP documentation metadata:
+```console
+git clone https://git.soep.de/kwenzig/publicecoredoku.git
 ```
+
+## Usage
+Run the app from a terminal:
+
+```console
 soepviewer
 ```
 
-The app will show the path to the user configuration file, where the paths to the SOEP documentation directory and questionnaires can be specified. After updating the paths, restart the app. 
+On first launch, the app displays the path to the user configuration file. Edit that file to set the paths to 
+the SOEP documentation metadata, and the specific questionnaires you want to work with. Restart the app after saving the configuration.
+
+## Project status
+
+This project is currently unmaintained. Feel free to adapt it to your needs.
+
+## Development
+
+Clone and run from source:
+```console
+git clone https://github.com/chalbmeier/soepviewer.git
+cd soepviewer
+python -m soepviewer
+```
