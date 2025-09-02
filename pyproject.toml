@@ -23,7 +23,8 @@ dependencies = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
+    "Environment :: Win32 (MS Windows)",
 ]
 license = {file = "LICENSE"}
 

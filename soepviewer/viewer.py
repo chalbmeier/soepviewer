@@ -2,6 +2,7 @@ import ctypes
 from os.path import join
 from pathlib import Path
 from platformdirs import user_config_dir
+import sys
 import tkinter as tk
 import tomllib
 from .algorithms import ItemNameSimilarity, LevenshteinSimilarity
@@ -414,4 +415,9 @@ class Viewer():
 
 def main():
     """Starts a new instance of the app."""
+    if sys.platform != "win32":
+        sys.stderr.write(
+            "SOEPViewer: this version currently supports Windows only (Windows 10/11).\n"
+        )
+        sys.exit(2)
     Viewer()
