@@ -1,5 +1,6 @@
-from .soepviewer import Viewer
+from .viewer import main, Viewer
 
 __all__ = [
+    "main",
     "Viewer",
 ]

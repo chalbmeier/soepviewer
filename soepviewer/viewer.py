@@ -412,10 +412,6 @@ class Viewer():
     
 
 
-def start():
-    """Starts a new instance of the app. For command line."""
+def main():
+    """Starts a new instance of the app."""
     Viewer()
-
-
- 
-

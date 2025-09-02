@@ -28,7 +28,7 @@ classifiers = [
 license = {file = "LICENSE"}
 
 [project.scripts]
-soepviewer = "soepviewer.soepviewer:start"
+soepviewer = "soepviewer:main"
 
 [project.urls]
 Homepage = "https://github.com/chalbmeier/soepviewer"
