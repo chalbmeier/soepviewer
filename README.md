@@ -1,6 +1,6 @@
 # SOEPViewer
 
-A small desktop app to make working with [SOEP](https://www.diw.de/en/diw_01.c.615551.en/research_infrastructure__socio-economic_panel__soep.html) metadata easier.  
+A desktop application to make working with [SOEP](https://www.diw.de/en/diw_01.c.615551.en/research_infrastructure__socio-economic_panel__soep.html) metadata easier.  
 
 ## Requirements
 
